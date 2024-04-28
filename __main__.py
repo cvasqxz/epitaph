@@ -4,6 +4,7 @@ from json import dumps
 
 from constants import TAGS, OP_RETURN, OP_13 
 from int_processing import find_LEB128_sequence
+from rune_name import decode_name
 
 def main(args):
 	script = unhexlify(args.script)
@@ -72,7 +73,6 @@ def main(args):
 				divisibility = int_seq.pop(0)
 				if etching:
 					runestone['etching']['divisibility'] = divisibility
-
 				continue
 
 			if tag == 2:
@@ -119,7 +119,7 @@ def main(args):
 				continue
 
 			if tag == 4:
-				rune_name = int_seq.pop(0)
+				rune_name = decode_name(int_seq.pop(0))
 				if etching:
 					runestone['etching']['rune'] = rune_name
 				continue
@@ -128,29 +128,48 @@ def main(args):
 				symbol = int_seq.pop(0)
 				if etching:
 					runestone['etching']['symbol'] = symbol
-				
 				continue
 
 			if tag == 6:
 				premine = int_seq.pop(0)
 				if etching:
 					runestone['etching']['premine'] = premine
-
 				continue
 
 			if tag == 8:
 				cap = int_seq.pop(0)
 				if etching and terms:
 					runestone['etching']['terms']['cap'] = cap
-
 				continue
 
 			if tag == 10:
 				amount = int_seq.pop(0)
-
 				if etching and terms:
 					runestone['etching']['terms']['amount'] = amount
+				continue
 
+			if tag == 12:
+				height_start = int_seq.pop(0)
+				if etching and terms:
+					runestone['etching']['terms']['height'][0] = height_start
+				continue
+
+			if tag == 14:
+				height_end = int_seq.pop(0)
+				if etching and terms:
+					runestone['etching']['terms']['height'][1] = height_end
+				continue
+
+			if tag == 16:
+				offset_start = int_seq.pop(0)
+				if etching and terms:
+					runestone['etching']['terms']['offset'][0] = offset_start
+				continue
+
+			if tag == 18:
+				offset_end = int_seq.pop(0)
+				if etching and terms:
+					runestone['etching']['terms']['offset'][0] = offset_end
 				continue
 
 			if tag == 20:
@@ -161,7 +180,6 @@ def main(args):
 
 				if mint['txpos'] == None:
 					mint['txpos'] = int_seq.pop(0)
-					
 					runestone['mint'] = f"{mint['id']}:{mint['txpos']}"
 					continue
 
@@ -170,7 +188,7 @@ def main(args):
 				runestone['pointer'] = pointer
 				continue
 
-		print(dumps(runestone, indent=4))
+		print(dumps(runestone))
 
 if __name__ == "__main__":
     parser = ArgumentParser(description="Parse runestone scripts")
