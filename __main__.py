@@ -1,5 +1,6 @@
 from binascii import unhexlify, hexlify
 from argparse import ArgumentParser
+from json import dumps
 
 from constants import TAGS, OP_RETURN, OP_13 
 from int_processing import find_LEB128_sequence
@@ -30,8 +31,13 @@ def main(args):
 		last_id_txpos = 0
 		mint = {'id': None, 'txpos': None}
 
+		etching = False
+		terms = False
+		turbo = False
+
 		runestone = {
 			"edicts": [],
+			'etching': None,
 			"mint": None,
 			"pointer": None
 		}
@@ -64,7 +70,9 @@ def main(args):
 
 			if tag == 1:
 				divisibility = int_seq.pop(0)
-				print("divisibility", divisibility)
+				if etching:
+					runestone['etching']['divisibility'] = divisibility
+
 				continue
 
 			if tag == 2:
@@ -81,37 +89,68 @@ def main(args):
 				cenotaph = flags > 0b111
 				assert not cenotaph
 
-				print({"etching": etching, "terms": terms, "turbo": turbo})
+				if etching:
+					runestone['etching'] = {
+					'divisibility': None,
+					'premine': None,
+					'rune': None,
+					'spacers': None,
+					'symbol': None,
+					'turbo': False
+					}
+
+				if etching and terms:
+					runestone['etching']['terms'] = {
+					'amount': None,
+					'cap': None,
+					'height': [None, None],
+					'offset': [None, None]
+					}
+
+				if turbo:
+					runestone['turbo'] = True
+
 				continue
 
 			if tag == 3:
 				spacers = int_seq.pop(0)
-				print("spacers", spacers)
+				if etching:
+					runestone['etching']['spacers'] = spacers
 				continue
 
 			if tag == 4:
 				rune_name = int_seq.pop(0)
-				print("rune_name", rune_name)
+				if etching:
+					runestone['etching']['rune'] = rune_name
 				continue
 
 			if tag == 5:
 				symbol = int_seq.pop(0)
-				print("symbol", symbol)
+				if etching:
+					runestone['etching']['symbol'] = symbol
+				
 				continue
 
 			if tag == 6:
 				premine = int_seq.pop(0)
-				print("premine", premine)
+				if etching:
+					runestone['etching']['premine'] = premine
+
 				continue
 
 			if tag == 8:
 				cap = int_seq.pop(0)
-				print("cap", cap)
+				if etching and terms:
+					runestone['etching']['terms']['cap'] = cap
+
 				continue
 
 			if tag == 10:
 				amount = int_seq.pop(0)
-				print("amount", amount)
+
+				if etching and terms:
+					runestone['etching']['terms']['amount'] = amount
+
 				continue
 
 			if tag == 20:
@@ -131,7 +170,7 @@ def main(args):
 				runestone['pointer'] = pointer
 				continue
 
-		print(runestone)
+		print(dumps(runestone, indent=4))
 
 if __name__ == "__main__":
     parser = ArgumentParser(description="Parse runestone scripts")
