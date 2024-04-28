@@ -5,7 +5,7 @@ from constants import TAGS, OP_RETURN, OP_13
 from int_processing import find_LEB128_sequence
 
 def main(args):
-	script = unhexlify(args.s)
+	script = unhexlify(args.script)
 
 	# Find the first transaction output whose script pubkey
 	# begins with OP_RETURN OP_13
@@ -29,6 +29,7 @@ def main(args):
 		last_id_height = 0
 		last_id_txpos = 0
 		mint = {'id': None, 'txpos': None}
+
 		runestone = {
 			"edicts": [],
 			"mint": None,
@@ -61,6 +62,11 @@ def main(args):
 				runestone['edicts'].append(edict)
 				continue
 
+			if tag == 1:
+				divisibility = int_seq.pop(0)
+				print("divisibility", divisibility)
+				continue
+
 			if tag == 2:
 				flags = int_seq.pop(0)
 
@@ -76,6 +82,36 @@ def main(args):
 				assert not cenotaph
 
 				print({"etching": etching, "terms": terms, "turbo": turbo})
+				continue
+
+			if tag == 3:
+				spacers = int_seq.pop(0)
+				print("spacers", spacers)
+				continue
+
+			if tag == 4:
+				rune_name = int_seq.pop(0)
+				print("rune_name", rune_name)
+				continue
+
+			if tag == 5:
+				symbol = int_seq.pop(0)
+				print("symbol", symbol)
+				continue
+
+			if tag == 6:
+				premine = int_seq.pop(0)
+				print("premine", premine)
+				continue
+
+			if tag == 8:
+				cap = int_seq.pop(0)
+				print("cap", cap)
+				continue
+
+			if tag == 10:
+				amount = int_seq.pop(0)
+				print("amount", amount)
 				continue
 
 			if tag == 20:
@@ -99,7 +135,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser(description="Parse runestone scripts")
-    parser.add_argument("-s", type=str, help="bitcoin script", required=True)
+    parser.add_argument("-script", type=str, help="bitcoin script", required=True)
     args = parser.parse_args()
 
     main(args)
