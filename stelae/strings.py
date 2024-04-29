@@ -11,6 +11,7 @@ def divmod_excel(n):
 
 
 def decode_name(num):
+	num += 1
 	chars = []
 	while num > 0:
 		num, d = divmod_excel(num)
@@ -19,7 +20,7 @@ def decode_name(num):
 
 
 def encode_name(chars):
-	return reduce(lambda r, x: r * 26 + x + 1, map(ascii_uppercase.index, chars), 0)
+	return reduce(lambda r, x: r * 26 + x + 1, map(ascii_uppercase.index, chars), 0) - 1
 
 
 def is_hex(s):
