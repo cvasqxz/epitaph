@@ -3,29 +3,42 @@ from argparse import ArgumentParser
 from json import dumps
 
 from constants import TAGS, OP_RETURN, OP_13 
-from int_processing import find_LEB128_sequence
-from rune_name import decode_name
+from integers import find_LEB128_sequence
+from strings import decode_name, is_hex
+
 
 def main(args):
+	if not is_hex(args.script) or len(args.script) % 2 != 0:
+		print("error, malformed hex string")
+		return
+
 	script = unhexlify(args.script)
 
 	# Find the first transaction output whose script pubkey
 	# begins with OP_RETURN OP_13
-	assert script.startswith(OP_RETURN + OP_13)
+	if not script.startswith(OP_RETURN + OP_13):
+		print("error, script does not start with OP_RETURN OP_13")
+		return
+
 	p = 2
 
 	while p < len(script):
 		# The payload buffer is assembled by concatenating data pushes
 		# Data pushes are opcodes 0 through 78 inclusive
 		len_runestone = script[p]
-		assert len_runestone <= 78
 		p += 1
+
+		if len_runestone > 78:
+			print("error, pushcode length invalid")
+			return
+
 
 		print(f"RUNESTONE FOUND: {hexlify(script[p:p+len_runestone])}")
 
 		# A sequence of 128-bit integers are decoded
 		# from the payload as LEB128 varints.
 		int_seq = find_LEB128_sequence(script[p:p+len_runestone])
+		print(f"LEB128 Integer sequence: {int_seq}")
 		p += len_runestone
 
 		last_id_height = 0
@@ -48,8 +61,8 @@ def main(args):
 			print(f"tag: {tag} (valid = {tag in TAGS})")
 
 			if not tag in TAGS:
-				print(f"weird tag {tag}, fuck em")
-				continue
+				print(f"invalid tag found, this is a cenotaph")
+				return
 
 			if tag == 0:
 				# Rune ID block heights and transaction indices
@@ -191,8 +204,8 @@ def main(args):
 		print(dumps(runestone))
 
 if __name__ == "__main__":
-    parser = ArgumentParser(description="Parse runestone scripts")
-    parser.add_argument("-script", type=str, help="bitcoin script", required=True)
-    args = parser.parse_args()
+	parser = ArgumentParser(description="Parse runestone scripts")
+	parser.add_argument("--script", help="bitcoin script", required=True)
+	args = parser.parse_args()
 
-    main(args)
+	main(args)
