@@ -67,14 +67,18 @@ def main(args):
 			if tag == 0:
 				# Rune ID block heights and transaction indices
 				# in edicts are delta encoded.
+				id_height = int_seq.pop(0)
 
-				# TXID 5458949156ecfa7930c7accf2754fdb8f0c1b972afe22869f1a877bf3985f345
-				# 6a5d1100e0f29d01bf07e08ca0cb050100006402
-				id_height = int_seq.pop(0) + last_id_txpos
-				id_txpos = int_seq.pop(0) + last_id_txpos
+				if id_height > 0:
+					id_txpos = int_seq.pop(0)
+				else:
+					id_height = id_height + last_id_height
+					id_txpos = last_id_txpos
 
 				last_id_height = id_height
 				last_id_txpos = id_txpos
+
+				print(id_height, id_txpos)
 
 				rune_id = f"{id_height}:{id_txpos}"
 				
@@ -143,7 +147,7 @@ def main(args):
 			if tag == 5:
 				symbol = int_seq.pop(0)
 				if etching:
-					runestone['etching']['symbol'] = symbol
+					runestone['etching']['symbol'] = chr(symbol)
 				continue
 
 			if tag == 6:
@@ -204,7 +208,7 @@ def main(args):
 				runestone['pointer'] = pointer
 				continue
 
-		print(dumps(runestone))
+		print(dumps(runestone, indent=2, ensure_ascii=False))
 
 if __name__ == "__main__":
 	parser = ArgumentParser(description="Parse runestone scripts")
