@@ -1,27 +1,15 @@
 from binascii import unhexlify, hexlify
 from argparse import ArgumentParser
 from json import dumps
+from requests import get
 
 from constants import TAGS, OP_RETURN, OP_13 
 from integers import find_LEB128_sequence
 from strings import decode_name, is_hex
 
 
-def main(args):
-	if not is_hex(args.script) or len(args.script) % 2 != 0:
-		print("error, malformed hex string")
-		return
-
-	script = unhexlify(args.script)
-
-	# Find the first transaction output whose script pubkey
-	# begins with OP_RETURN OP_13
-	if not script.startswith(OP_RETURN + OP_13):
-		print("error, script does not start with OP_RETURN OP_13")
-		return
-
+def main(script):
 	p = 2
-
 	while p < len(script):
 		# The payload buffer is assembled by concatenating data pushes
 		# Data pushes are opcodes 0 through 78 inclusive
@@ -32,13 +20,9 @@ def main(args):
 			print("error, pushcode length invalid")
 			return
 
-
-		print(f"RUNESTONE FOUND: {hexlify(script[p:p+len_runestone])}")
-
 		# A sequence of 128-bit integers are decoded
 		# from the payload as LEB128 varints.
 		int_seq = find_LEB128_sequence(script[p:p+len_runestone])
-		print(f"LEB128 Integer sequence: {int_seq}")
 		p += len_runestone
 
 		last_id_height = 0
@@ -58,7 +42,6 @@ def main(args):
 
 		while len(int_seq) > 0:
 			tag = int_seq.pop(0)
-			print(f"tag: {tag} (valid = {tag in TAGS})")
 
 			if not tag in TAGS:
 				print(f"invalid tag found, this is a cenotaph")
@@ -67,18 +50,18 @@ def main(args):
 			if tag == 0:
 				# Rune ID block heights and transaction indices
 				# in edicts are delta encoded.
-				id_height = int_seq.pop(0)
-
-				if id_height > 0:
+				if runestone['edicts'] == []:
+					id_height = int_seq.pop(0)
 					id_txpos = int_seq.pop(0)
-				else:
-					id_height = id_height + last_id_height
-					id_txpos = last_id_txpos
+				else:		
+					id_height = int_seq.pop(0)
+
+					if id_height == 0:
+						id_height += last_id_height
+						id_txpos = last_id_txpos
 
 				last_id_height = id_height
 				last_id_txpos = id_txpos
-
-				print(id_height, id_txpos)
 
 				rune_id = f"{id_height}:{id_txpos}"
 				
@@ -208,11 +191,32 @@ def main(args):
 				runestone['pointer'] = pointer
 				continue
 
-		print(dumps(runestone, indent=2, ensure_ascii=False))
+		return dumps(runestone, ensure_ascii=False)
+
 
 if __name__ == "__main__":
 	parser = ArgumentParser(description="Parse runestone scripts")
-	parser.add_argument("--script", help="bitcoin script", required=True)
-	args = parser.parse_args()
+	#parser.add_argument("--script", help="bitcoin script", required=True)
+	#args = parser.parse_args()
 
-	main(args)
+	last_block = get("https://blockchain.info/latestblock").json()
+
+	raw_block = get(f"https://blockchain.info/rawblock/{last_block['hash']}").json()
+
+	for tx in raw_block['tx']:
+		for txout in tx['out']:
+			script = txout['script']
+			if not is_hex(script) or len(script) % 2 != 0:
+				print("error, malformed hex string")
+				continue
+
+			script = unhexlify(script)
+			# Find the first transaction output whose script pubkey
+			# begins with OP_RETURN OP_13
+			if not script.startswith(OP_RETURN + OP_13):
+				continue
+			
+			print(tx['hash'], main(script))
+
+	exit()
+
